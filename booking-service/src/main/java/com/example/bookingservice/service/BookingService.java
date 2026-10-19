@@ -15,6 +15,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Geschäftslogik-Service für Buchungen.
+ *
+ * <p>Dient der zentralen Verwaltung von Buchungen, einschließlich Erstellung, Suche
+ * und Stornierung. Darüber hinaus werden ereignisgesteuerte Updates über RabbitMQ
+ * publiziert.</p>
+ *
+ * <h2>Hauptverantwortlichkeiten:</h2>
+ * <ul>
+ *   <li>Erstellen von Buchungen für Mitfahrten</li>
+ *   <li>Abrufen von Buchungen nach Mitfahrt oder Passagier</li>
+ *   <li>Stornieren von Buchungen mit Event-Auslösung</li>
+ *   <li>Validierung der Mitfahrt-Verfügbarkeit über den RideOfferClient</li>
+ * </ul>
+ *
+ * @see com.example.bookingservice.entity.Booking
+ * @see BookingController
+ */
 @Service
 public class BookingService {
 
@@ -31,6 +49,16 @@ public class BookingService {
     @Value("${app.rabbitmq.routing.key.booking:booking.routing}")
     private String bookingRoutingKey;
 
+    /**
+     * Konstruktor mit Dependency Injection.
+     *
+     * <p>Überprüft die Erreichbarkeit von RabbitMQ und initialisiert den
+     * {@link RabbitTemplate} entsprechend der Verfügbarkeit.</p>
+     *
+     * @param bookingRepository      Repository zur Persistenz der Buchungen
+     * @param rideOfferClient        Client zum Abrufen von Mitfahrtinformationen
+     * @param connectionFactory      ConnectionFactory für RabbitMQ-Verbindungen
+     */
     public BookingService(BookingRepository bookingRepository,
                           RideOfferClient rideOfferClient,
                           org.springframework.amqp.rabbit.connection.CachingConnectionFactory connectionFactory) {
@@ -61,6 +89,18 @@ public class BookingService {
         this.rabbitTemplate = template;
     }
 
+    /**
+     * Erstellt eine neue Buchung für eine Mitfahrt.
+     *
+     * <p>Validiert zuerst, ob die angegebene Mitfahrt existiert und noch verfügbar ist,
+     * und prüft zudem, ob bereits eine aktive Buchung vorliegt und genug freie Plätze vorhanden sind.</p>
+     *
+     * @param username  Der Benutzername des Passagiers
+     * @param request   DTO mit der ID der anzubuchenden Mitfahrt
+     * @return Das neu erstellte {@link BookingResponse}-Objekt
+     * @throws IllegalArgumentException Wenn die Ride-ID fehlt oder die Mitfahrt nicht gefunden wurde
+     * @throws IllegalStateException    Wenn die Mitfahrt nicht mehr verfügbar ist oder keine Plätze frei sind
+     */
     /**
      * Neue Buchung erstellen.
      */
@@ -129,6 +169,12 @@ public class BookingService {
 
     /**
      * Alle Buchungen für eine Mitfahrt abrufen.
+     *
+     * @param rideId Die ID der Mitfahrt, für die die Buchungen abgerufen werden sollen
+     * @return Liste der {@link BookingResponse}-Objekte für alle Buchungen der Mitfahrt
+     */
+    /**
+     * Alle Buchungen für eine Mitfahrt abrufen.
      */
     @Transactional(readOnly = true)
     public List<BookingResponse> getBookingsForRide(Long rideId) {
@@ -140,6 +186,12 @@ public class BookingService {
 
     /**
      * Alle Buchungen eines Passagiers abrufen.
+     *
+     * @param username Der Benutzername des Passagiers
+     * @return Liste der {@link BookingResponse}-Objekte für alle Buchungen des Passagiers
+     */
+    /**
+     * Alle Buchungen eines Passagiers abrufen.
      */
     @Transactional(readOnly = true)
     public List<BookingResponse> getBookingsByPassenger(String username) {
@@ -149,6 +201,13 @@ public class BookingService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Buchung stornieren.
+     *
+     * @param bookingId Die ID der zu stornierenden Buchung
+     * @param username  Der Benutzername des Passagiers (zur Berechtigungsprüfung)
+     * @throws IllegalStateException Wenn die Buchung bereits storniert ist
+     */
     /**
      * Buchung stornieren.
      */
