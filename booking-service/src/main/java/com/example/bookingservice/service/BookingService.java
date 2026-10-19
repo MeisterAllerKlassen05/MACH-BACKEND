@@ -24,10 +24,10 @@ import java.util.stream.Collectors;
  *
  * <h2>Hauptverantwortlichkeiten:</h2>
  * <ul>
- *   <li>Erstellen von Buchungen für Mitfahrten</li>
- *   <li>Abrufen von Buchungen nach Mitfahrt oder Passagier</li>
- *   <li>Stornieren von Buchungen mit Event-Auslösung</li>
- *   <li>Validierung der Mitfahrt-Verfügbarkeit über den RideOfferClient</li>
+ * <li>Erstellen von Buchungen für Mitfahrten</li>
+ * <li>Abrufen von Buchungen nach Mitfahrt oder Passagier</li>
+ * <li>Stornieren von Buchungen mit Event-Auslösung</li>
+ * <li>Validierung der Mitfahrt-Verfügbarkeit über den RideOfferClient</li>
  * </ul>
  *
  * @see com.example.bookingservice.entity.Booking
@@ -114,19 +114,19 @@ public class BookingService {
         Long rideId = request.getRideId();
 
         // Prüfe ob die Mitfahrt existiert und noch verfügbar ist
-        Map<String, Object> rideInfo = rideOfferClient.getRideById(rideId);
+        RideOfferClient.RideInfo rideInfo = rideOfferClient.getRideById(rideId);
         if (rideInfo == null) {
             throw new IllegalArgumentException("Mitfahrt nicht gefunden: " + rideId);
         }
 
         // Prüfe ob die Mitfahrt noch "OFFERED" ist
-        String status = (String) rideInfo.get("status");
+        String status = rideInfo.getStatus();
         if (!"OFFERED".equals(status)) {
             throw new IllegalStateException("Die Mitfahrt ist nicht mehr verfügbar. Status: " + status);
         }
 
         // Prüfe ob die Mitfahrt in der Vergangenheit liegt
-        java.time.LocalDateTime departureTime = (java.time.LocalDateTime) rideInfo.get("departureTime");
+        java.time.LocalDateTime departureTime = rideInfo.getDepartureTime();
         if (departureTime != null && departureTime.isBefore(java.time.LocalDateTime.now())) {
             throw new IllegalStateException("Die Abfahrtszeit liegt bereits in der Vergangenheit.");
         }
@@ -137,7 +137,7 @@ public class BookingService {
         }
 
         // Prüfe ob genug Plätze frei sind
-        Integer availableSeats = (Integer) rideInfo.get("availableSeats");
+        Integer availableSeats = rideInfo.getAvailableSeats();
         if (availableSeats != null && availableSeats <= 0) {
             throw new IllegalStateException("Keine freien Plätze mehr verfügbar für diese Mitfahrt.");
         }
@@ -187,15 +187,17 @@ public class BookingService {
     /**
      * Alle Buchungen eines Passagiers abrufen.
      *
+     * <p>Nur bestätigte (nicht stornierte) Buchungen werden zurückgegeben.</p>
+     *
      * @param username Der Benutzername des Passagiers
-     * @return Liste der {@link BookingResponse}-Objekte für alle Buchungen des Passagiers
+     * @return Liste der {@link BookingResponse}-Objekte für alle BESTÄTIGTEN Buchungen des Passagiers
      */
     /**
-     * Alle Buchungen eines Passagiers abrufen.
+     * Alle BESTÄTIGTEN Buchungen eines Passagiers abrufen.
      */
     @Transactional(readOnly = true)
     public List<BookingResponse> getBookingsByPassenger(String username) {
-        return bookingRepository.findByPassengerUsername(username)
+        return bookingRepository.findByPassengerUsernameAndStatus(username, Booking.BookingStatus.CONFIRMED)
                 .stream()
                 .map(BookingResponse::fromEntity)
                 .collect(Collectors.toList());
