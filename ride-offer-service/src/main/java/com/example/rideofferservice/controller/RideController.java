@@ -169,7 +169,7 @@ public class RideController {
      * @param id Die ID der abzurufenden Mitfahrt
      * @return ResponseEntity mit den Fahrtdaten als {@link RideResponse} oder 404 (NOT_FOUND)
      */
-    @GetMapping("/{id}")
+    @GetMapping("/public/{id}")
     public ResponseEntity<RideResponse> getRide(@PathVariable Long id) {
         RideResponse ride = rideService.getRideById(id);
         if (ride == null) {

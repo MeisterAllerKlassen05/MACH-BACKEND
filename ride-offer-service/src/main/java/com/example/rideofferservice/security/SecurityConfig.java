@@ -62,7 +62,11 @@ public class SecurityConfig {
                         // Öffentliche Endpunkte — KEIN Token nötig
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // GraphQL-Endpunkte und Introspection immer öffentlich (Schema wird offengelegt)
+                        .requestMatchers("/graphql").permitAll()
                         .requestMatchers("/api/rides/public/**").permitAll()
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);

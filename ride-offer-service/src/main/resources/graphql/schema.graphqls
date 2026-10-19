@@ -1,0 +1,78 @@
+# --- Input Types ---
+input CreateRideInput {
+    startLocation: String!
+    endLocation: String!
+    departureTime: String!
+    availableSeats: Int!
+    additionalInfo: String
+}
+
+input RideSearchParams {
+    startLocation: String!
+    endLocation: String!
+    from: String
+    to: String
+    first: Int
+    after: String
+}
+
+# --- Edge & Connection (Pagination) ---
+type RideEdge {
+    node: RideResponse!
+    cursor: String!
+}
+
+type RideConnection {
+    edges: [RideEdge!]!
+    pageInfo: PageInfo!
+}
+
+type PageInfo {
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+    startCursor: String
+    endCursor: String
+}
+
+# --- Query ---
+type Query {
+    """Alle verfügbaren (angebotenen) Mitfahrten mit Pagination"""
+    availableRides(first: Int, after: String): RideConnection!
+
+    """Suche Mitfahrten nach Start- und Zielort mit Pagination"""
+    ridesByLocation(startLocation: String!, endLocation: String, first: Int, after: String): RideConnection!
+
+    """Suche Mitfahrten nach Start- und Zielort plus Zeitraum"""
+    ridesBySearch(params: RideSearchParams!): RideConnection!
+
+    """Eine einzelne Mitfahrt nach ID (auch für nicht authentifizierte User)"""
+    ride(id: ID!): RideResponse
+
+    """Eigene angebotene Mitfahrten (nur für authentifizierte User) mit Pagination"""
+    myOfferedRides(first: Int, after: String): RideConnection!
+}
+
+# --- Mutation ---
+type Mutation {
+    """Neue Mitfahrt anbieten"""
+    createRide(input: CreateRideInput!): RideResponse!
+
+    """Mitfahrt stornieren"""
+    cancelRide(id: ID!): RideResponse!
+
+    """Mitfahrt löschen"""
+    deleteRide(id: ID!): Boolean!
+}
+
+# --- Response Type ---
+type RideResponse {
+    id: ID!
+    driverUsername: String!
+    startLocation: String!
+    endLocation: String!
+    departureTime: String!
+    availableSeats: Int!
+    additionalInfo: String
+    status: String!
+    createdAt: String
+}
